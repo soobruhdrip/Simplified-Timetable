@@ -12,6 +12,7 @@ export type ClassSlot = {
   courseCode: string
   type: SlotType
   faculty: string
+  location: string
   building: string
   floor: string
   room: string
@@ -26,7 +27,7 @@ export type PeriodTime = {
   endMin: number
 }
 
-/** Fixed period grid shared by every day order. */
+/** Fixed period grid shared by every day order (matches the Batch 2 sheet). */
 export const PERIOD_TIMES: PeriodTime[] = [
   { period: 1, start: "8:00 AM", end: "8:50 AM", startMin: 8 * 60, endMin: 8 * 60 + 50 },
   { period: 2, start: "8:50 AM", end: "9:40 AM", startMin: 8 * 60 + 50, endMin: 9 * 60 + 40 },
@@ -42,104 +43,338 @@ export const PERIOD_TIMES: PeriodTime[] = [
   { period: 12, start: "5:30 PM", end: "6:10 PM", startMin: 17 * 60 + 30, endMin: 18 * 60 + 10 },
 ]
 
+// ---------------------------------------------------------------------------
+// COURSE CATALOG  (edit here to change names / colors / faculty / rooms)
+// ---------------------------------------------------------------------------
+
 export const COURSES: Record<string, Course> = {
-  "26BTB1001T": { code: "26BTB1001T", name: "Introduction to Computational Biology", color: "amber" },
-  "26MEE1001L": { code: "26MEE1001L", name: "Workshop Practice", color: "teal" },
+  "26MAB1001T": { code: "26MAB1001T", name: "Calculus and Linear Algebra", color: "violet" },
   "26CYB1002J": { code: "26CYB1002J", name: "Chemistry for Computer Science", color: "rose" },
   "26CSE1002J": { code: "26CSE1002J", name: "Programming for Problem Solving", color: "blue" },
-  "26MAB1001T": { code: "26MAB1001T", name: "Calculus and Linear Algebra", color: "violet" },
+  "26BTB1001T": { code: "26BTB1001T", name: "Introduction to Computational Biology", color: "amber" },
+  "26MEE1001L": { code: "26MEE1001L", name: "Workshop Practice", color: "teal" },
 }
 
-const UNI = { building: "University Building", floor: "6th Floor", room: "618" }
-const CHEM_LAB = { building: "Chemistry Lab Block", floor: "Ground Floor", room: "Chemistry Laboratory 2" }
-const FORENSICS = { building: "Tech Park", floor: "4th Floor", room: "Computer Forensics Lab" }
-const BEL = { building: "Basic Engineering Lab (BEL)", floor: "Ground Floor", room: "Sheet Metal Lab" }
+type Venue = { faculty: string; location: string; building: string; floor: string; room: string }
 
-const FAC = {
-  chem: "Dr. N. Abirami",
-  prog: "Dr. Avinash Vujji",
-  calc: "Dr. Kalaiyarasi R",
-  bio: "Ambikah Gandhi Mathi A G",
-  workshop: "Dr. Santosh Kumar Singh",
+/**
+ * Each course has a lecture venue and (optionally) a separate lab venue,
+ * taken straight from the "Timetable Details" sheet. `makeSlot` picks the
+ * right venue based on whether a period is a LECTURE or a LAB.
+ */
+const VENUES: Record<string, { lecture?: Venue; lab?: Venue }> = {
+  "26MAB1001T": {
+    lecture: {
+      faculty: "Dr. Suvitha V [102113]",
+      location: "Annexure-II",
+      building: "University Building",
+      floor: "5th Floor",
+      room: "509",
+    },
+  },
+  "26CYB1002J": {
+    lecture: {
+      faculty: "Dr. P. Panneerselvam [101449]",
+      location: "Annexure-II",
+      building: "University Building",
+      floor: "5th Floor",
+      room: "509",
+    },
+    lab: {
+      faculty: "Dr. P. Panneerselvam [101449]",
+      location: "Annexure-II",
+      building: "Chemistry Lab Block",
+      floor: "1st Floor",
+      room: "Chemistry Laboratory 4",
+    },
+  },
+  "26CSE1002J": {
+    lecture: {
+      faculty: "Dr. Sorna Lakshmi K [102403]",
+      location: "Annexure-II",
+      building: "University Building",
+      floor: "5th Floor",
+      room: "509",
+    },
+    lab: {
+      faculty: "Dr. Sorna Lakshmi K [102403]",
+      location: "Annexure-I",
+      building: "Basic Engineering Lab (BEL)",
+      floor: "3rd Floor",
+      room: "Programming Lab-1",
+    },
+  },
+  "26BTB1001T": {
+    lecture: {
+      faculty: "Saileshwar M [104013]",
+      location: "Annexure-II",
+      building: "University Building",
+      floor: "5th Floor",
+      room: "509",
+    },
+  },
+  "26MEE1001L": {
+    lab: {
+      faculty: "Dr. Murugesan R [100553]",
+      location: "Annexure-I",
+      building: "Basic Engineering Lab (BEL)",
+      floor: "Ground Floor",
+      room: "Sheet Metal Lab",
+    },
+  },
 }
 
-/** day order (1..5) -> period number -> class slot (missing = free / idle period) */
+function makeSlot(courseCode: string, type: SlotType): ClassSlot {
+  const v = VENUES[courseCode]
+  const venue = (type === "LAB" ? v?.lab : v?.lecture) ?? v?.lecture ?? v?.lab
+  return {
+    courseCode,
+    type,
+    faculty: venue?.faculty ?? "TBA",
+    location: venue?.location ?? "",
+    building: venue?.building ?? "TBA",
+    floor: venue?.floor ?? "",
+    room: venue?.room ?? "",
+  }
+}
+
+// Short helpers so the grid below reads like the printed timetable.
+const L = (code: string): ClassSlot => makeSlot(code, "LECTURE")
+const LAB = (code: string): ClassSlot => makeSlot(code, "LAB")
+
+/**
+ * day order (1..5) -> period number -> class slot (missing = free / idle period)
+ * Transcribed from the Batch 2 grid. Day 1 was not on the shared sheet, so it
+ * is intentionally left empty — fill it in the same shape when you have it.
+ */
 export const SCHEDULE: Record<number, Record<number, ClassSlot>> = {
   1: {
-    3: { courseCode: "26CSE1002J", type: "LAB", faculty: FAC.prog, ...FORENSICS },
-    4: { courseCode: "26CSE1002J", type: "LAB", faculty: FAC.prog, ...FORENSICS },
-    10: { courseCode: "26BTB1001T", type: "LECTURE", faculty: FAC.bio, ...UNI },
+    // No data on the shared sheet — add your Day 1 periods here.
   },
   2: {
-    1: { courseCode: "26CYB1002J", type: "LECTURE", faculty: FAC.chem, ...UNI },
-    2: { courseCode: "26CYB1002J", type: "LECTURE", faculty: FAC.chem, ...UNI },
-    3: { courseCode: "26BTB1001T", type: "LECTURE", faculty: FAC.bio, ...UNI },
-    4: { courseCode: "26BTB1001T", type: "LECTURE", faculty: FAC.bio, ...UNI },
-    7: { courseCode: "26MEE1001L", type: "LAB", faculty: FAC.workshop, ...BEL },
-    8: { courseCode: "26MEE1001L", type: "LAB", faculty: FAC.workshop, ...BEL },
-    9: { courseCode: "26MEE1001L", type: "LAB", faculty: FAC.workshop, ...BEL },
-    10: { courseCode: "26MEE1001L", type: "LAB", faculty: FAC.workshop, ...BEL },
+    1: L("26MAB1001T"),
+    2: L("26MAB1001T"),
   },
   3: {
-    9: { courseCode: "26MAB1001T", type: "LECTURE", faculty: FAC.calc, ...UNI },
-    10: { courseCode: "26CYB1002J", type: "LAB", faculty: FAC.chem, ...CHEM_LAB },
+    3: LAB("26CYB1002J"),
+    4: LAB("26CYB1002J"),
+    6: L("26BTB1001T"),
+    7: L("26BTB1001T"),
+    9: L("26CYB1002J"),
+    10: L("26MAB1001T"),
   },
   4: {
-    1: { courseCode: "26MAB1001T", type: "LECTURE", faculty: FAC.calc, ...UNI },
-    2: { courseCode: "26MAB1001T", type: "LECTURE", faculty: FAC.calc, ...UNI },
-    3: { courseCode: "26CYB1002J", type: "LECTURE", faculty: FAC.chem, ...UNI },
-    4: { courseCode: "26CSE1002J", type: "LECTURE", faculty: FAC.prog, ...UNI },
+    1: L("26CYB1002J"),
+    2: L("26CYB1002J"),
+    3: L("26MAB1001T"),
+    4: L("26CSE1002J"),
+    5: L("26BTB1001T"),
+    7: L("26CSE1002J"),
+    8: L("26CSE1002J"),
   },
   5: {
-    1: { courseCode: "26CYB1002J", type: "LAB", faculty: FAC.chem, ...CHEM_LAB },
-    2: { courseCode: "26CYB1002J", type: "LAB", faculty: FAC.chem, ...CHEM_LAB },
-    6: { courseCode: "26CSE1002J", type: "LECTURE", faculty: FAC.prog, ...UNI },
-    7: { courseCode: "26CSE1002J", type: "LECTURE", faculty: FAC.prog, ...UNI },
-    10: { courseCode: "26MAB1001T", type: "LECTURE", faculty: FAC.calc, ...UNI },
+    1: LAB("26MEE1001L"),
+    2: LAB("26MEE1001L"),
+    3: LAB("26MEE1001L"),
+    4: LAB("26MEE1001L"),
+    6: LAB("26CSE1002J"),
+    7: LAB("26CSE1002J"),
+    8: L("26BTB1001T"),
+    10: L("26CYB1002J"),
   },
 }
 
 export const DAY_ORDERS = [1, 2, 3, 4, 5]
 
-/**
- * Anchor: 25 Aug 2026 (a Tuesday) is Day Order 5.
- * Day orders advance one step per working day (Mon-Fri) and skip weekends
- * so the "live" day order tracks a real academic rotation.
- */
-const ANCHOR = new Date(2026, 7, 25)
-const ANCHOR_ORDER = 5
+// ---------------------------------------------------------------------------
+// ACADEMIC CALENDAR  (source of truth for day orders + holidays)
+// Each row: [ISO date, dayOrder (0 = holiday), note]
+// A working day has dayOrder 1..5. A holiday has dayOrder 0 and a reason.
+// ---------------------------------------------------------------------------
 
-function isWeekend(d: Date) {
-  const day = d.getDay()
-  return day === 0 || day === 6
+const RAW_CALENDAR: [string, number, string][] = [
+  ["2026-07-21", 1, ""],
+  ["2026-07-22", 2, ""],
+  ["2026-07-23", 3, ""],
+  ["2026-07-24", 4, ""],
+  ["2026-07-25", 0, "Saturday"],
+  ["2026-07-26", 0, "Sunday"],
+  ["2026-07-27", 5, ""],
+  ["2026-07-28", 1, ""],
+  ["2026-07-29", 2, ""],
+  ["2026-07-30", 3, ""],
+  ["2026-07-31", 4, ""],
+  ["2026-08-01", 0, "Saturday"],
+  ["2026-08-02", 0, "Sunday"],
+  ["2026-08-03", 5, ""],
+  ["2026-08-04", 1, ""],
+  ["2026-08-05", 2, ""],
+  ["2026-08-06", 3, ""],
+  ["2026-08-07", 4, ""],
+  ["2026-08-08", 0, "Saturday"],
+  ["2026-08-09", 0, "Sunday"],
+  ["2026-08-10", 5, ""],
+  ["2026-08-11", 1, ""],
+  ["2026-08-12", 2, ""],
+  ["2026-08-13", 3, ""],
+  ["2026-08-14", 4, ""],
+  ["2026-08-15", 0, "Saturday"],
+  ["2026-08-16", 0, "Sunday"],
+  ["2026-08-17", 5, ""],
+  ["2026-08-18", 1, ""],
+  ["2026-08-19", 2, ""],
+  ["2026-08-20", 3, ""],
+  ["2026-08-21", 4, ""],
+  ["2026-08-22", 0, "Saturday"],
+  ["2026-08-23", 0, "Sunday"],
+  ["2026-08-24", 0, "Classes Suspended"],
+  ["2026-08-25", 5, ""],
+  ["2026-08-26", 0, "Milad-un-nabi"],
+  ["2026-08-27", 1, ""],
+  ["2026-08-28", 2, ""],
+  ["2026-08-29", 0, "Saturday"],
+  ["2026-08-30", 0, "Sunday"],
+  ["2026-08-31", 3, ""],
+  ["2026-09-01", 4, ""],
+  ["2026-09-02", 5, ""],
+  ["2026-09-03", 1, ""],
+  ["2026-09-04", 0, "Krishna Jayanthi"],
+  ["2026-09-05", 0, "Saturday"],
+  ["2026-09-06", 0, "Sunday"],
+  ["2026-09-07", 2, ""],
+  ["2026-09-08", 3, ""],
+  ["2026-09-09", 4, ""],
+  ["2026-09-10", 5, ""],
+  ["2026-09-11", 1, ""],
+  ["2026-09-12", 0, "Saturday"],
+  ["2026-09-13", 0, "Sunday"],
+  ["2026-09-14", 0, "Vinayagar Chathurthi"],
+  ["2026-09-15", 2, ""],
+  ["2026-09-16", 3, ""],
+  ["2026-09-17", 4, ""],
+  ["2026-09-18", 5, ""],
+  ["2026-09-19", 0, "Saturday"],
+  ["2026-09-20", 0, "Sunday"],
+  ["2026-09-21", 1, ""],
+  ["2026-09-22", 2, ""],
+  ["2026-09-23", 3, ""],
+  ["2026-09-24", 4, ""],
+  ["2026-09-25", 5, ""],
+  ["2026-09-26", 0, "Saturday"],
+  ["2026-09-27", 0, "Sunday"],
+  ["2026-09-28", 1, ""],
+  ["2026-09-29", 2, ""],
+  ["2026-09-30", 3, ""],
+  ["2026-10-01", 4, ""],
+  ["2026-10-02", 0, "Gandhi Jayanthi"],
+  ["2026-10-03", 0, "Saturday"],
+  ["2026-10-04", 0, "Sunday"],
+  ["2026-10-05", 5, ""],
+  ["2026-10-06", 1, ""],
+  ["2026-10-07", 2, ""],
+  ["2026-10-08", 3, ""],
+  ["2026-10-09", 4, ""],
+  ["2026-10-10", 0, "Saturday"],
+  ["2026-10-11", 0, "Sunday"],
+  ["2026-10-12", 5, ""],
+  ["2026-10-13", 1, ""],
+  ["2026-10-14", 2, ""],
+  ["2026-10-15", 3, ""],
+  ["2026-10-16", 4, ""],
+  ["2026-10-17", 0, "Saturday"],
+  ["2026-10-18", 0, "Sunday"],
+  ["2026-10-19", 0, "Ayutha Pooja"],
+  ["2026-10-20", 0, "Vijaya Dasami"],
+  ["2026-10-21", 5, ""],
+  ["2026-10-22", 1, ""],
+  ["2026-10-23", 2, ""],
+  ["2026-10-24", 0, "Saturday"],
+  ["2026-10-25", 0, "Sunday"],
+  ["2026-10-26", 3, ""],
+  ["2026-10-27", 4, ""],
+  ["2026-10-28", 5, ""],
+  ["2026-10-29", 1, ""],
+  ["2026-10-30", 2, ""],
+  ["2026-10-31", 0, "Saturday"],
+  ["2026-11-01", 0, "Sunday"],
+  ["2026-11-02", 3, ""],
+  ["2026-11-03", 4, ""],
+  ["2026-11-04", 5, ""],
+  ["2026-11-05", 1, ""],
+  ["2026-11-06", 2, ""],
+  ["2026-11-07", 0, "Saturday"],
+  ["2026-11-08", 0, "Sunday"],
+  ["2026-11-09", 3, ""],
+  ["2026-11-10", 4, ""],
+  ["2026-11-11", 5, ""],
+  ["2026-11-12", 1, ""],
+  ["2026-11-13", 2, ""],
+  ["2026-11-14", 0, "Saturday"],
+  ["2026-11-15", 0, "Sunday"],
+  ["2026-11-16", 3, ""],
+  ["2026-11-17", 4, ""],
+  ["2026-11-18", 5, ""],
+  ["2026-11-19", 1, ""],
+  ["2026-11-20", 2, "Last Working Day - PG"],
+  ["2026-11-21", 0, "Saturday"],
+  ["2026-11-22", 0, "Sunday"],
+  ["2026-11-23", 3, ""],
+  ["2026-11-24", 4, ""],
+  ["2026-11-25", 5, ""],
+  ["2026-11-26", 1, ""],
+  ["2026-11-27", 2, ""],
+  ["2026-11-28", 0, "Saturday"],
+  ["2026-11-29", 0, "Sunday"],
+  ["2026-11-30", 3, ""],
+  ["2026-12-01", 4, ""],
+  ["2026-12-02", 5, ""],
+  ["2026-12-03", 1, ""],
+  ["2026-12-04", 2, ""],
+  ["2026-12-05", 0, "Saturday"],
+  ["2026-12-06", 0, "Sunday"],
+  ["2026-12-07", 3, "Last Working Day - UG First Year"],
+]
+
+export type CalendarEntry = {
+  date: string
+  dayOrder: number | null
+  isHoliday: boolean
+  note: string
 }
 
-function startOfDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+export const CALENDAR: Record<string, CalendarEntry> = Object.fromEntries(
+  RAW_CALENDAR.map(([date, order, note]) => [
+    date,
+    { date, dayOrder: order === 0 ? null : order, isHoliday: order === 0, note },
+  ]),
+)
+
+export const CALENDAR_LIST: CalendarEntry[] = RAW_CALENDAR.map(([date, order, note]) => ({
+  date,
+  dayOrder: order === 0 ? null : order,
+  isHoliday: order === 0,
+  note,
+}))
+
+/** Look up a calendar entry for a Date (returns undefined outside the published range). */
+export function calendarEntryForDate(date: Date): CalendarEntry | undefined {
+  return CALENDAR[toDateInputValue(date)]
 }
 
-/** Net count of working days from ANCHOR to the given date (can be negative). */
-function workingDayOffset(target: Date): number {
-  const a = startOfDay(ANCHOR)
-  const b = startOfDay(target)
-  if (a.getTime() === b.getTime()) return 0
-  const forward = b.getTime() > a.getTime()
-  const step = forward ? 1 : -1
-  const cursor = new Date(a)
-  let count = 0
-  while (cursor.getTime() !== b.getTime()) {
-    cursor.setDate(cursor.getDate() + step)
-    if (!isWeekend(cursor)) count += step
-  }
-  return count
-}
-
-/** Returns the day order (1..5) for a date, or null for weekends (holiday). */
+/** Returns the day order (1..5) for a date, or null for holidays / unknown dates. */
 export function dayOrderForDate(date: Date): number | null {
-  if (isWeekend(date)) return null
-  const offset = workingDayOffset(date)
-  const idx = (((ANCHOR_ORDER - 1 + offset) % 5) + 5) % 5
-  return idx + 1
+  return calendarEntryForDate(date)?.dayOrder ?? null
+}
+
+/** True when the date is inside the published calendar and marked as a holiday. */
+export function isHolidayDate(date: Date): boolean {
+  return calendarEntryForDate(date)?.isHoliday ?? false
+}
+
+/** The next working (class) day strictly after the given date, within the calendar. */
+export function nextWorkingDay(date: Date): CalendarEntry | undefined {
+  const key = toDateInputValue(date)
+  return CALENDAR_LIST.find((e) => e.date > key && e.dayOrder != null)
 }
 
 export function classesScheduled(order: number): number {
@@ -154,6 +389,12 @@ export function formatDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, "0")
   const month = d.toLocaleDateString("en-US", { month: "short" })
   return `${day} ${month} ${d.getFullYear()}`
+}
+
+export function formatLongDate(iso: string): string {
+  const d = fromDateInputValue(iso)
+  const weekday = d.toLocaleDateString("en-US", { weekday: "long" })
+  return `${weekday}, ${formatDate(d)}`
 }
 
 export function weekdayName(d: Date): string {
@@ -174,4 +415,8 @@ export function toDateInputValue(d: Date): string {
 export function fromDateInputValue(v: string): Date {
   const [y, m, d] = v.split("-").map(Number)
   return new Date(y, m - 1, d)
+}
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return toDateInputValue(a) === toDateInputValue(b)
 }

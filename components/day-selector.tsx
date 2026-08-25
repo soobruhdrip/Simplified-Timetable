@@ -8,12 +8,14 @@ export function DaySelector({
   selectedOrder,
   todayOrder,
   onSelectOrder,
+  holidayNote,
 }: {
   dateValue: string
   onDateChange: (v: string) => void
   selectedOrder: number
   todayOrder: number | null
   onSelectOrder: (order: number) => void
+  holidayNote: string | null
 }) {
   const scheduled = classesScheduled(selectedOrder)
 
@@ -73,20 +75,30 @@ export function DaySelector({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-panel-2/40 p-4">
-        <p className="font-mono text-[10px] tracking-label text-muted-foreground">SELECTED LOADOUT</p>
-        <div className="mt-2 flex items-center justify-between">
-          <div>
-            <p className="text-2xl font-black text-foreground">Day {selectedOrder}</p>
-            <p className="text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">{scheduled}</span> classes scheduled
-            </p>
+      {holidayNote ? (
+        <div className="rounded-xl border border-course-amber/40 bg-course-amber/[0.06] p-4">
+          <p className="font-mono text-[10px] tracking-label text-course-amber">SELECTED DATE</p>
+          <div className="mt-2">
+            <p className="text-2xl font-black text-foreground">Holiday</p>
+            <p className="text-xs text-muted-foreground">{holidayNote}</p>
           </div>
-          <span className="rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-xs text-primary">
-            D{selectedOrder}/5
-          </span>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-panel-2/40 p-4">
+          <p className="font-mono text-[10px] tracking-label text-muted-foreground">SELECTED LOADOUT</p>
+          <div className="mt-2 flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-black text-foreground">Day {selectedOrder}</p>
+              <p className="text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{scheduled}</span> classes scheduled
+              </p>
+            </div>
+            <span className="rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-xs text-primary">
+              D{selectedOrder}/5
+            </span>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }
