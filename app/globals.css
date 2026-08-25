@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+
+  --color-course-amber: var(--course-amber);
+  --color-course-teal: var(--course-teal);
+  --color-course-rose: var(--course-rose);
+  --color-course-blue: var(--course-blue);
+  --color-course-violet: var(--course-violet);
+
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-3xl: calc(var(--radius) + 18px);
+}
+
+:root {
+  color-scheme: dark;
+  --radius: 1rem;
+
+  --background: oklch(0.16 0.02 265);
+  --foreground: oklch(0.96 0.008 250);
+
+  --panel: oklch(0.205 0.02 265);
+  --panel-2: oklch(0.24 0.022 265);
+
+  --card: oklch(0.205 0.02 265);
+  --card-foreground: oklch(0.96 0.008 250);
+  --popover: oklch(0.205 0.02 265);
+  --popover-foreground: oklch(0.96 0.008 250);
+
+  --primary: oklch(0.82 0.14 190);
+  --primary-foreground: oklch(0.18 0.03 250);
+
+  --secondary: oklch(0.28 0.02 265);
+  --secondary-foreground: oklch(0.96 0.008 250);
+
+  --muted: oklch(0.28 0.02 265);
+  --muted-foreground: oklch(0.62 0.02 260);
+
+  --accent: oklch(0.3 0.03 260);
+  --accent-foreground: oklch(0.96 0.008 250);
+
+  --destructive: oklch(0.65 0.2 20);
+
+  --border: oklch(0.34 0.02 265 / 55%);
+  --input: oklch(0.34 0.02 265 / 60%);
+  --ring: oklch(0.82 0.14 190);
+
+  --course-amber: oklch(0.82 0.15 80);
+  --course-teal: oklch(0.8 0.13 185);
+  --course-rose: oklch(0.7 0.19 15);
+  --course-blue: oklch(0.7 0.16 250);
+  --course-violet: oklch(0.68 0.19 300);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01";
+  }
+}
+
+/* subtle blueprint grid used behind the whole board */
+.board-grid {
+  background-image:
+    linear-gradient(to right, oklch(0.5 0.02 260 / 6%) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.5 0.02 260 / 6%) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.tracking-label {
+  letter-spacing: 0.22em;
+}
